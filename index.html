@@ -3,50 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <style>body {padding: 0; margin: 0;}</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script>
-        let circleSize = 100;
-        let circleX, circleY;
-        let maxX, maxY;
+        let particles = [];
+        let shakeThreshold = 30;
 
         function setup() {
-        createCanvas(windowWidth, windowHeight);
-  
-        circleX = width / 2;
-        circleY = height / 2;
-  
-        maxX = width - circleSize;
-        maxY = height - circleSize;
-  
-        if (typeof(DeviceOrientationEvent) !== 'undefined' && typeof(DeviceOrientationEvent.requestPermission) === 'function') {
-            DeviceOrientationEvent.requestPermission()
-            .then(permissionState => {
-                if (permissionState === 'granted') {
-                window.addEventListener('deviceorientation', handleOrientation, true);
-                }
-            })
-            .catch(console.error);
-        } else {
-                window.addEventListener('deviceorientation', handleOrientation, true);
-                }
+            createCanvas(windowWidth, windowHeight);
+            window.addEventListener('devicemotion', handleShakeEvent);
         }
 
         function draw() {
             background(220);
-            ellipse(circleX, circleY, circleSize);
+            particles.forEach(particle => {
+                particle.update();
+                particle.display();
+            });
         }
 
-        function handleOrientation(event) {
-            let accelerationX = event.gamma; // Tilt in the x-axis
-            let accelerationY = event.beta; // Tilt in the y-axis
-  
-            let newX = map(accelerationX, -90, 90, 0, maxX);
-            let newY = map(accelerationY, -90, 90, 0, maxY);
-  
-            circleX = newX;
-            circleY = newY;
+        function handleShakeEvent(event) {
+            let acceleration = event.accelerationIncludingGravity;
+            if (acceleration.x > shakeThreshold || acceleration.y > shakeThreshold || acceleration.z > shakeThreshold) {
+                shakeParticles();
+            }
+        }
+
+        function shakeParticles() {
+            particles.forEach(particle => {
+                let force = createVector(random(-5, 5), random(-5, 5));
+                particle.applyForce(force);
+            });
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.position = createVector(x, y);
+                this.velocity = createVector();
+                this.acceleration = createVector();
+                this.size = 10;
+            }
+
+            applyForce(force) {
+                this.acceleration.add(force);
+            }
+
+            update() {
+                this.velocity.add(this.acceleration);
+                this.position.add(this.velocity);
+                this.acceleration.mult(0);
+            }
+
+            display() {
+                noStroke();
+                fill(0);
+                ellipse(this.position.x, this.position.y, this.size, this.size);
+            }
+        }
+
+        function mouseClicked() {
+            particles.push(new Particle(mouseX, mouseY));
         }
     </script>
 </body>
